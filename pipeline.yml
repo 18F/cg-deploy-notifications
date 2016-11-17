@@ -1,0 +1,81 @@
+---
+jobs:
+- name: push-notifications-app-prod
+  serial: true
+  plan:
+  - aggregate:
+    - get: notifications-src
+      trigger: true
+    - get: pipeline-tasks
+  - put: push-notifications
+    params:
+      path: notifications-src
+      manifest: notifications-src/manifest.yml
+      environment_variables:
+        CC_HOST: {{cf-api}}
+        DEFAULT_UAA_SCOPES: {{uaa-scopes}}
+        DOMAIN: {{app-domain}}
+        ENCRYPTION_KEY: {{encription-key}}
+        ROOT_PATH: {{app-root-path}}
+        SENDER: {{notification-sender}}
+        SMTP_AUTH_MECHANISM: {{smtp-auth-mechanism}}
+        SMTP_HOST: {{smtp-auth-host}}
+        SMTP_PASS: {{smtp-auth-pass}}
+        SMTP_PORT: {{smtp-auth-port}}
+        SMTP_TLS: "true"
+        SMTP_USER: {{smtp-user}}
+        UAA_CLIENT_ID: {{uaa-client-id}}
+        UAA_CLIENT_SECRET: {{uaa-client-secret}}
+        UAA_HOST: {{uaa-host}}
+  on_failure:
+    put: slack
+    params:
+      text: |
+        :x: FAILED to deploy notifications app on {{cf-api}}
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: {{slack-channel}}
+      username: {{slack-username}}
+      icon_url: {{slack-icon-url}}
+  on_success:
+    put: slack
+    params:
+      text: |
+        :white_check_mark: Successfully deployed notifications app on {{cf-api}}
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+      channel: {{slack-channel}}
+      username: {{slack-username}}
+      icon_url: {{slack-icon-url}}
+
+
+resources:
+- name: notifications-src
+  type: git
+  source:
+    uri: {{notifications-git-url}}
+    branch: {{notifications-git-branch}}
+
+- name: push-notifications
+  type: cf
+  source:
+    api: {{cf-api}}
+    username: {{cf-user}}
+    password: {{cf-pass}}
+    organization: {{cf-org}}
+    space: {{cf-space}}
+
+- name: pipeline-tasks
+  type: git
+  source:
+    uri: {{pipeline-tasks-git-url}}
+    branch: {{pipeline-tasks-git-branch}}
+
+- name: slack
+  type: slack-notification
+  source:
+    url: {{slack-webhook-url}}
+
+resource_types:
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: cfcommunity/slack-notification-resource
