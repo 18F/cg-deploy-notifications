@@ -3,10 +3,8 @@ jobs:
 - name: push-notifications-app-prod
   serial: true
   plan:
-  - aggregate:
-    - get: notifications-src
-      trigger: true
-    - get: pipeline-tasks
+  - get: notifications-src
+    trigger: true
   - put: push-notifications
     params:
       path: notifications-src
@@ -15,7 +13,7 @@ jobs:
         CC_HOST: {{cf-api}}
         DEFAULT_UAA_SCOPES: {{uaa-scopes}}
         DOMAIN: {{app-domain}}
-        ENCRYPTION_KEY: {{encription-key}}
+        ENCRYPTION_KEY: {{encryption-key}}
         ROOT_PATH: {{app-root-path}}
         SENDER: {{notification-sender}}
         SMTP_AUTH_MECHANISM: {{smtp-auth-mechanism}}
@@ -46,7 +44,6 @@ jobs:
       username: {{slack-username}}
       icon_url: {{slack-icon-url}}
 
-
 resources:
 - name: notifications-src
   type: git
@@ -62,12 +59,6 @@ resources:
     password: {{cf-pass}}
     organization: {{cf-org}}
     space: {{cf-space}}
-
-- name: pipeline-tasks
-  type: git
-  source:
-    uri: {{pipeline-tasks-git-url}}
-    branch: {{pipeline-tasks-git-branch}}
 
 - name: slack
   type: slack-notification
